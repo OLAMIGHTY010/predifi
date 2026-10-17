@@ -2359,3 +2359,53 @@ pub struct RemovedFromWhitelistEvent {
     /// Ledger timestamp.
     pub timestamp: u64,
 }
+
+/// Emitted when a market is created or configured with an explicit governed oracle configuration.
+#[contractevent(topics = ["market_oracle_configured"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MarketOracleConfiguredEvent {
+    /// Target pool identifier.
+    pub pool_id: u64,
+    /// Oracle identity bound to this market.
+    pub oracle: Address,
+    /// Governed supported feed identifier.
+    pub feed_id: Symbol,
+    /// Accepted freshness policy in seconds.
+    pub max_staleness_seconds: u64,
+}
+
+/// Emitted when an admin adds a supported feed identifier to the governed registry.
+#[contractevent(topics = ["supported_feed_added"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SupportedFeedAddedEvent {
+    /// Admin address adding the supported feed.
+    pub admin: Address,
+    /// Governed supported feed identifier added.
+    pub feed_id: Symbol,
+}
+
+/// Emitted when an admin removes a supported feed identifier from the governed registry.
+#[contractevent(topics = ["supported_feed_removed"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SupportedFeedRemovedEvent {
+    /// Admin address removing the supported feed.
+    pub admin: Address,
+    /// Governed supported feed identifier removed.
+    pub feed_id: Symbol,
+}
+
+/// Emitted when an admin updates the protocol freshness policy bounds.
+#[contractevent(topics = ["oracle_freshness_bounds_set"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OracleFreshnessBoundsSetEvent {
+    /// Admin address setting the bounds.
+    pub admin: Address,
+    /// Minimum allowed freshness in seconds.
+    pub min_freshness: u64,
+    /// Maximum allowed freshness in seconds.
+    pub max_freshness: u64,
+}

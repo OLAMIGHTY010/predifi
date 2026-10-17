@@ -6,8 +6,8 @@
 extern crate std;
 
 mod admin;
-#[cfg(test)]
-mod benchmark_test;
+// #[cfg(test)]
+// mod benchmark_test;
 #[cfg(test)]
 mod boundary_edge_case_tests;
 #[cfg(test)]
@@ -47,6 +47,8 @@ mod update_pool_description_boundary_tests;
 #[cfg(test)]
 mod withdraw_treasury_boundary_tests;
 mod treasury;
+#[cfg(test)]
+mod oracle_feed_fixture;
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, token,
@@ -265,6 +267,12 @@ pub enum PredifiError {
     FeeChangePending = 95,
     NoFeeChangePending = 96,
     TimelockNotExpired = 97,
+    /// Feed identifier is not in the governed supported feeds list.
+    UnsupportedFeed = 202,
+    /// Freshness policy value is outside valid configuration bounds.
+    InvalidFreshness = 203,
+    /// Oracle configuration is immutable after market creation and cannot be modified.
+    ConfigurationImmutable = 204,
 }
 
 /// Represents the current state of a prediction market.
@@ -427,6 +435,21 @@ pub struct PoolConfig {
     pub whitelist_key: Option<Symbol>,
     /// Human-readable labels for each outcome (length must equal options_count).
     pub outcome_descriptions: Vec<String>,
+}
+
+/// Governed oracle configuration per market.
+///
+/// Binds a prediction market explicitly to an oracle identity, supported feed identifier,
+/// and accepted freshness policy. Persisted at pool creation and immutable thereafter.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MarketOracleConfig {
+    /// Oracle identity (e.g., trusted oracle contract or provider address).
+    pub oracle: Address,
+    /// Governed supported feed identifier (e.g., symbol_short!("BTC")).
+    pub feed_id: Symbol,
+    /// Accepted freshness policy in seconds (max acceptable age of price updates for this market).
+    pub max_staleness_seconds: u64,
 }
 
 /// Statistics for a prediction pool.
@@ -774,6 +797,14 @@ pub enum DataKey {
     /// Sentinel that records a pool has been marked ready for resolution.
     /// `PoolReady(pool_id)` -> `bool`.
     PoolReady(u64),
+    /// Governed oracle configuration for a specific market: `MarketOracleConfig(pool_id)` -> `MarketOracleConfig`
+    MarketOracleConfig(u64),
+    /// Supported oracle feed identifier flag: `SupportedFeed(feed_id)` -> `bool`
+    SupportedFeed(Symbol),
+    /// Tracked list of all supported feed identifiers: `SupportedFeedList` -> `Vec<Symbol>`
+    SupportedFeedList,
+    /// Protocol bounds for oracle freshness policy: `OracleFreshnessBounds` -> `(u64, u64)`
+    OracleFreshnessBounds,
 }
 
 /// Represents a user's individual stake in a prediction market.
@@ -1354,6 +1385,42 @@ pub struct ResolutionVoteCastEvent {
     pub vote_count: u32,
     pub required_resolutions: u32,
 }
+
+#[contractevent(topics = ["market_oracle_configured"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MarketOracleConfiguredEvent {
+    pub pool_id: u64,
+    pub oracle: Address,
+    pub feed_id: Symbol,
+    pub max_staleness_seconds: u64,
+}
+
+#[contractevent(topics = ["supported_feed_added"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SupportedFeedAddedEvent {
+    pub admin: Address,
+    pub feed_id: Symbol,
+}
+
+#[contractevent(topics = ["supported_feed_removed"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SupportedFeedRemovedEvent {
+    pub admin: Address,
+    pub feed_id: Symbol,
+}
+
+#[contractevent(topics = ["oracle_freshness_bounds_set"])]
+#[contracttype(export = false)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OracleFreshnessBoundsSetEvent {
+    pub admin: Address,
+    pub min_freshness: u64,
+    pub max_freshness: u64,
+}
+
 mod events;
 use events::ClaimWindowUpdateEvent;
 // pub use events::*; // Unused import

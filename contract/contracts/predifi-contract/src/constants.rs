@@ -363,6 +363,12 @@ pub const HIGH_VALUE_THRESHOLD: i128 = 1_000_000_000;
 /// **Used for:** Calculating tolerance ranges in price-based oracle conditions.
 pub const MAX_TOLERANCE: u32 = 10_000;
 
+/// Default minimum accepted oracle freshness policy in seconds (5 seconds).
+pub const DEFAULT_MIN_ORACLE_FRESHNESS: u64 = 5;
+
+/// Default maximum accepted oracle freshness policy in seconds (86,400 seconds = 24 hours).
+pub const DEFAULT_MAX_ORACLE_FRESHNESS: u64 = 86_400;
+
 /// Maximum number of primitive checks allowed while matching a price condition.
 ///
 /// **Units:** Count (dimensionless)

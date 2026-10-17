@@ -5,7 +5,8 @@ use soroban_sdk::{contractimpl, log, token, Address, Env, String, Symbol, Vec};
 
 use crate::gas_opt;
 use crate::{
-    Config, DataKey, InitialLiquidityProvidedEvent, MarketState, MaxTotalStakeIncreasedEvent, Pool,
+    Config, DataKey, InitialLiquidityProvidedEvent, MarketOracleConfig,
+    MarketOracleConfiguredEvent, MarketState, MaxTotalStakeIncreasedEvent, Pool,
     PoolCanceledEvent, PoolConfig, PoolCreatedEvent, PoolDescriptionUpdatedEvent,
     PoolDisputedEvent, PoolReadyForResolutionEvent, PoolResolvedDiagEvent, PoolResolvedEvent,
     PoolStats, PredifiContract, PredifiContractArgs, PredifiContractClient, PredifiError,
@@ -280,10 +281,102 @@ impl PredifiContract {
         Self::require_not_paused(&env)?;
         creator.require_auth();
 
+        Self::create_pool_internal(
+            &env,
+            creator,
+            end_time,
+            token,
+            options_count,
+            category,
+            config,
+        )
+    }
+
+    /// Create a new prediction pool with explicit, governed oracle configuration.
+    ///
+    /// Validates supported feed identifiers, oracle identity whitelist, and freshness bounds
+    /// before persisting the configuration at creation. The configuration is immutable thereafter.
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_oracle_pool(
+        env: Env,
+        creator: Address,
+        end_time: u64,
+        token: Address,
+        options_count: u32,
+        category: Symbol,
+        config: PoolConfig,
+        oracle_config: MarketOracleConfig,
+    ) -> Result<u64, PredifiError> {
+        Self::require_not_paused(&env)?;
+        creator.require_auth();
+
+        // Validate the oracle configuration bounds and supported identifiers before pool creation
+        Self::validate_market_oracle_config(&env, &oracle_config)?;
+
+        let pool_id = Self::create_pool_internal(
+            &env,
+            creator,
+            end_time,
+            token,
+            options_count,
+            category,
+            config,
+        )?;
+
+        // Persist the selected feed configuration at creation (immutable)
+        let oracle_key = DataKey::MarketOracleConfig(pool_id);
+        env.storage().persistent().set(&oracle_key, &oracle_config);
+        Self::extend_persistent(&env, &oracle_key);
+
+        // Expose configuration in contract event
+        MarketOracleConfiguredEvent {
+            pool_id,
+            oracle: oracle_config.oracle,
+            feed_id: oracle_config.feed_id,
+            max_staleness_seconds: oracle_config.max_staleness_seconds,
+        }
+        .publish(&env);
+
+        Ok(pool_id)
+    }
+
+    /// Alias for `create_oracle_pool`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_pool_with_oracle(
+        env: Env,
+        creator: Address,
+        end_time: u64,
+        token: Address,
+        options_count: u32,
+        category: Symbol,
+        config: PoolConfig,
+        oracle_config: MarketOracleConfig,
+    ) -> Result<u64, PredifiError> {
+        Self::create_oracle_pool(
+            env,
+            creator,
+            end_time,
+            token,
+            options_count,
+            category,
+            config,
+            oracle_config,
+        )
+    }
+
+    fn create_pool_internal(
+        env: &Env,
+        creator: Address,
+        end_time: u64,
+        token: Address,
+        options_count: u32,
+        category: Symbol,
+        config: PoolConfig,
+    ) -> Result<u64, PredifiError> {
         // Validate: category must be in the allowed list, return error if invalid
-        let normalized_category = match Self::validate_category(&env, &category) {
+        let normalized_category = match Self::validate_category(env, &category) {
             Ok(cat) => cat,
-            Err(e) => soroban_sdk::panic_with_error!(&env, e),
+            Err(e) => soroban_sdk::panic_with_error!(env, e),
         };
 
         // Validate: token must be on the allowed betting whitelist
