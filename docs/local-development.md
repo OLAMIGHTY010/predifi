@@ -29,6 +29,8 @@ To run containers in the background (detached mode):
 docker compose up -d
 ```
 
+> **Isolated Wallet E2E Testing:** For the isolated wallet-signing quality gate, use `npm --prefix e2e/wallet run test:local` after installing the prerequisites in [Local Soroban wallet E2E](wallet-local-e2e.md). It starts only `stellar`, deploys fresh local contracts, and leaves the service running for further local work. If this machine has no Docker engine, run the same test on a GitHub-hosted Ubuntu runner from your fork as described there.
+
 ---
 
 ## Exposed Ports & Services

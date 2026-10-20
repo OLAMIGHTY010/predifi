@@ -17,6 +17,8 @@ mod gas_opt;
 mod oracle;
 #[cfg(test)]
 mod payout_proptests;
+#[cfg(test)]
+mod price_feed_proptests;
 mod payouts;
 mod pool;
 mod prediction;
@@ -40,6 +42,8 @@ mod stress_test_high_volume;
 mod test_utils;
 #[cfg(test)]
 mod pause_unpause_boundary_tests;
+#[cfg(test)]
+mod resource_limit_boundary_tests;
 // #[cfg(test)]
 // mod max_pools_stress_tests;
 #[cfg(test)]
@@ -222,6 +226,13 @@ pub enum PredifiError {
     InsufficientStake = 45,
     /// User has exceeded the maximum number of predictions allowed per pool.
     MaxPredictionsExceeded = 111,
+    /// A pool requested more outcomes than `MAX_OUTCOMES_PER_POOL`.
+    MaxOutcomesExceeded = 114,
+    /// A pool reached `MAX_PREDICTIONS_PER_POOL` distinct predictors.
+    MaxPredictionsPerPoolExceeded = 115,
+    /// Adding this stake would exceed `MAX_AGGREGATE_STAKE_PER_POOL`
+    /// (or the aggregate addition would overflow `i128`).
+    MaxAggregateStakeExceeded = 116,
     /// The fee basis points exceed the maximum allowed value (10000).
     InvalidFeeBps = 93,
     /// Metadata URL exceeds maximum length (512 bytes).
@@ -314,7 +325,7 @@ pub struct CreatePoolParams {
     pub end_time: u64,
     /// The Stellar token contract address used for staking.
     pub token: Address,
-    /// Number of possible outcomes (must be >= 2 and <= MAX_OPTIONS_COUNT).
+    /// Number of possible outcomes (must be >= 2 and <= MAX_OUTCOMES_PER_POOL).
     pub options_count: u32,
     /// Short human-readable description of the event (max 256 bytes).
     pub description: String,

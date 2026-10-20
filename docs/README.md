@@ -11,6 +11,7 @@ This directory contains comprehensive documentation for the PrediFi prediction m
 | Document | Description | Status |
 |----------|-------------|--------|
 | **[API_REFERENCE.md](./API_REFERENCE.md)** | Complete API reference with OpenAPI specification, authentication, rate limiting, and WebSocket subscriptions | Current |
+| **[MIGRATION_DEPLOYMENT_GUIDE.md](./MIGRATION_DEPLOYMENT_GUIDE.md)** | Database migration safety guide, lock classifications, rollback runbooks, and recovery procedures | Current |
 | **[OPENAPI_CLIENT_GENERATION.md](./OPENAPI_CLIENT_GENERATION.md)** | Guide for generating client SDKs in TypeScript, Python, and Rust | Current |
 | **[SMART_CONTRACT_DEPLOYMENT_GUIDE.md](./SMART_CONTRACT_DEPLOYMENT_GUIDE.md)** | Step-by-step guide for deploying PrediFi smart contracts to Stellar testnet and mainnet | Current |
 | **[quickstart.md](./quickstart.md)** | Quick start guide for developers | Current |
